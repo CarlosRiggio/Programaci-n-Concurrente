@@ -24,8 +24,8 @@
 #define MAX_INSTR_LENGTH 1000
 
 int main(int argc, char *argv[]) {
-    if (argc != 6) {
-        printf("Usage: %s [nodo_minimo] [nodo_maximo] [node_id] [instrucciones] [tiempos]\n", argv[0]);
+    if (argc != 7) {
+        printf("Usage: %s [nodo_minimo] [nodo_maximo] [node_id] [instrucciones] [tiempos] [output_filename]\n", argv[0]);
         return -1;
     }
 
@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
     int node_id = atoi(argv[3]);
     char* instrucciones = argv[4];
     char* tiempos = argv[5];
+    char* output_filename = argv[6];
 
     int longitud_instrucciones = 0;
     // Array para almacenar las instrucciones como enteros.
@@ -83,6 +84,7 @@ int main(int argc, char *argv[]) {
         printf("%d ", tiempos_arr[i]);
     }
     printf("\n");
+    printf("Output_filename: %s\n",output_filename); 
 
     
   

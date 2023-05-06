@@ -8,12 +8,14 @@
 #define MAX_PROCESOS 100
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s [filename]\n", argv[0]);
+    if (argc != 3) {
+        printf("Usage: %s [input_filename] [output_filename]\n", argv[0]);
         return -1;
     }
 
     char *filename = argv[1];
+
+    char *output_filename = argv[2];
 
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
@@ -101,7 +103,7 @@ int main(int argc, char *argv[]) {
 
 
             // Ejecutar el programa "nodo" utilizando execl().
-            execl("./simulador_nodo", "simulador_nodo", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], NULL);
+            execl("./simulador_nodo", "simulador_nodo", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], output_filename, NULL);
 
             // Si llegamos hasta aquí, significa que hubo un error al ejecutar execl().
             printf("Error al ejecutar el programa \"simulador_nodo\" para el nodo %d.\n", j);
