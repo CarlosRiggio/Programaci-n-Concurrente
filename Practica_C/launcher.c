@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 
             // Ejecutar el programa "nodo" utilizando execl().
             //execl("./simulador_nodo", "simulador_nodo", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], output_filename, NULL);
-            execl("./algoritmo_rondas", "algoritmo_rondas", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], SC_Time, Delay_Time, NULL);
+            execl("./algoritmo_rondas", "algoritmo_rondas", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], SC_Time, Delay_Time, output_filename, NULL);
             // Si llegamos hasta aquí, significa que hubo un error al ejecutar execl().
             printf("Error al ejecutar el programa \"algoritmo_rondas\" para el nodo %d.\n", j);
             return -1;

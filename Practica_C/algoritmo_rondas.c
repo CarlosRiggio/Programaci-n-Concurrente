@@ -14,8 +14,7 @@
 #define MAX_INSTR_LENGTH 1000
 #define MAX_STR_LEN 100
 #define MAX_NUM_REGS 10
-#define NUM_NODOS 50
-#define NUM_PROCESOS 3
+
 
 struct mensaje
 {
@@ -35,10 +34,15 @@ struct info_a_mandar_al_hilo{
 
 struct info_hilo_proceso{
     long prio;
-    int time;
+    float time;
 };
 
 // VARIABLES UTILES
+
+int NUM_NODOS = 0;
+int NUM_PROCESOS = 0;
+
+
 int mi_ticket = 0;
 int mi_id = 0;
 int mi_buzon_interno = 0;
@@ -75,7 +79,7 @@ int oks_a_consultas_ya_mandados = 0;
 // VARIABLES UTILES
 
 //CAMBIO DE VARIABLES
-int id_nodos[10];
+int id_nodos[100000000];
 int diferencia;
 int puerto = 1;
 //CAMBIO DE VARIABLES
@@ -207,8 +211,8 @@ void *proceso( void *arg)
     int mi_ticket_pedi = 0;
     int puedo_adelantar = 0;
 
-    int SC_TIME = info_pasada_param->time;
-    printf("+++++++SC_TIME: %d+++++++\n",SC_TIME);
+    float SC_TIME = info_pasada_param->time;
+    printf("+++++++SC_TIME: %f+++++++\n",SC_TIME);
 
     // INICIAR LONGITUD
     longitud_peticion = sizeof(peticion) - sizeof(peticion.tipo);
@@ -636,6 +640,7 @@ void *proceso( void *arg)
                 sem_wait(&semaforo_primer_proceso_general);
                 primer_proceso_general=1;
                 sem_post(&semaforo_primer_proceso_general);
+                sem_wait(&semaforo_nodos_pendientes);
                 for (i = 0; i < num_pend; i++)
                 {               
                     respuesta.puerto = puertos_pendientes[i];
@@ -647,6 +652,7 @@ void *proceso( void *arg)
                     printf("nodo: %i mando oks\n",mi_id);
                     peticiones_pendientes_de_consultas[i]=0;
                 }
+                sem_post(&semaforo_nodos_pendientes);
                 sem_wait(&semaforo_oks_a_consultas_ya_mandados);
                 oks_a_consultas_ya_mandados=0;
                 sem_post(&semaforo_oks_a_consultas_ya_mandados);
@@ -711,8 +717,8 @@ int id_nodo_origen = 0;
     longitud_peticion = sizeof(mensaje_recibido) - sizeof(mensaje_recibido.tipo);
     longitud_respuesta = sizeof(respuesta) - sizeof(respuesta.tipo);
 
-    int DELAY_TIME = *(int *)args;
-    printf("+++++++++++++++TIEMPO DE DELAY : %d+++++++++++++++\n", DELAY_TIME);
+    float DELAY_TIME = *(float *)args;
+    printf("+++++++++++++++TIEMPO DE DELAY : %f+++++++++++++++\n", DELAY_TIME);
 
     //printf("diferencia en receptor: %d\n",diferencia);
 
@@ -742,6 +748,8 @@ int id_nodo_origen = 0;
             }
 
             sem_post(&semaforo_max_ticket);
+
+            sem_wait(&semaforo_nodos_pendientes);
 
             sem_wait(&semaforo_quiero);
             sem_wait(&semaforo_ticket);
@@ -838,7 +846,7 @@ int id_nodo_origen = 0;
                 num_pend++;
                 sem_post(&semaforo_num_pendientes);
             }
-            //sem_post(&semaforo_nodos_pendientes);
+            sem_post(&semaforo_nodos_pendientes);
         }
         else{
             cuenta++;
@@ -899,8 +907,8 @@ int main(int argc, char *argv[])
     sem_init(&semaforo_finalizador,0,0);
     // INICIAR SEMAFOROS
 
-    if (argc != 8) {
-        printf("Usage: %s [nodo_minimo] [nodo_maximo] [node_id] [instrucciones] [tiempos] [SC_TIME] [DELAY_TIME]\n", argv[0]);
+    if (argc != 9) {
+        printf("Usage: %s [nodo_minimo] [nodo_maximo] [node_id] [instrucciones] [tiempos] [SC_TIME] [DELAY_TIME] [OUTPUT_FILENAME]\n", argv[0]);
         return -1;
     }
 
@@ -909,11 +917,12 @@ int main(int argc, char *argv[])
     mi_id = atoi(argv[3]);
     char* instrucciones = argv[4];
     char* tiempos = argv[5];
-    int SC_TIME = atoi(argv[6]);
-    int DELAY_TIME = atoi(argv[7]);
+    float SC_TIME = atof(argv[6]);
+    float DELAY_TIME = atof(argv[7]);
+    char* OUTPUT_FILENAME = argv[8];
 
-    printf("EN EL MAIN SC TIME: %d\n",SC_TIME );
-    printf("EN EL MAIN DELAY TIME: %d\n",DELAY_TIME );
+    printf("EN EL MAIN SC TIME: %f\n",SC_TIME );
+    printf("EN EL MAIN DELAY TIME: %f\n",DELAY_TIME );
     info_proceso.time= SC_TIME;
 
     int longitud_instrucciones = 0;
@@ -961,6 +970,7 @@ int main(int argc, char *argv[])
         }
     }
     diferencia = (nodo_maximo - nodo_minimo); //buzon 0 es de nodo 0 buzon 1 es el buzon interno del nodo 0
+    NUM_NODOS=diferencia;
     // INICIAR ID_NODOS
 
     // INICIAR THREADS
@@ -1023,10 +1033,15 @@ int main(int argc, char *argv[])
         }
 
     }
+
+    NUM_PROCESOS=contador;
+
     for(a=0;a<(contador);a++){
         sem_wait(&semaforo_finalizador);
     }
-    FILE* log_file = fopen("archivo.log","a");
+    sleep(0.1*mi_id);
+
+    FILE* log_file = fopen(OUTPUT_FILENAME,"a");
     if (log_file == NULL) {
         printf("Error al abrir archivo de log\n");
         exit(1);
@@ -1054,6 +1069,8 @@ int main(int argc, char *argv[])
         pthread_create(&thread_receptor, NULL, proceso, (void *)&info);
         sleep(1);
     }*/
-    printf("opepepeppepe\n");
-    exit(1);
+    printf("NODO TERMINADO\n");
+    sleep(20);
+
+    return(0);
 }
