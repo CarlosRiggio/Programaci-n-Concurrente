@@ -8,14 +8,23 @@
 #define MAX_PROCESOS 100
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        printf("Usage: %s [input_filename] [output_filename]\n", argv[0]);
+    if (argc != 5) {
+        printf("Usage: %s [input_filename] [output_filename] [SC_Time] [Delay_Time]\n", argv[0]);
         return -1;
     }
 
     char *filename = argv[1];
 
     char *output_filename = argv[2];
+
+    //int SC_Time = atoi(argv[3]);
+    //int Delay_Time = atoi(argv[4]);
+
+    char *SC_Time = argv[3];
+    char *Delay_Time = argv[4];
+
+
+    printf("%s,%s\n",SC_Time,Delay_Time);
 
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
@@ -103,10 +112,10 @@ int main(int argc, char *argv[]) {
 
 
             // Ejecutar el programa "nodo" utilizando execl().
-            execl("./simulador_nodo", "simulador_nodo", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], output_filename, NULL);
-
+            //execl("./simulador_nodo", "simulador_nodo", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], output_filename, NULL);
+            execl("./algoritmo_rondas", "algoritmo_rondas", nodo_min_str, nodo_max_str, nodo_str, instr_procesos[j - nodo_minimo], tiempos_procesos[j - nodo_minimo], SC_Time, Delay_Time, NULL);
             // Si llegamos hasta aquí, significa que hubo un error al ejecutar execl().
-            printf("Error al ejecutar el programa \"simulador_nodo\" para el nodo %d.\n", j);
+            printf("Error al ejecutar el programa \"algoritmo_rondas\" para el nodo %d.\n", j);
             return -1;
         }
     }
