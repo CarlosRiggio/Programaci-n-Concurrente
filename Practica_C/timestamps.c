@@ -106,7 +106,7 @@ char* generar_registro(char* pid, int tipo_proceso, struct timeval tiempo1, stru
             strcpy(tipo_proceso_str, "PAGO");
             break;
         case 3:
-            strcpy(tipo_proceso_str, "RESERVA/ANULACION");
+            strcpy(tipo_proceso_str, "RESERVA/ADMINISTRACIÓN");
             break;
         case 4:
             strcpy(tipo_proceso_str, "CONSULTA");
