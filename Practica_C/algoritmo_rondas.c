@@ -162,7 +162,7 @@ char* generar_registro(char* pid, int tipo_proceso, struct timeval tiempo1, stru
             strcpy(tipo_proceso_str, "PAGO");
             break;
         case 3:
-            strcpy(tipo_proceso_str, "RESERVA/ANULACION");
+            strcpy(tipo_proceso_str, "RESERVA/ADMINISTRACIÓN");
             break;
         case 4:
             strcpy(tipo_proceso_str, "CONSULTA");
@@ -231,6 +231,7 @@ void *proceso( void *arg)
         //idea para adelantamiento de ronda
         sem_wait(&semaforo_permitiendo_adelantamiento_de_ronda);
         if(permitiendo_adelantamiento_de_ronda==1 && (mi_prioridad==1 || mi_prioridad==2)){
+            sem_post(&semaforo_permitiendo_adelantamiento_de_ronda);
             if(mi_prioridad==1){
                 puedo_adelantar=1;
                 sem_wait(&semaforo_anulaciones_esperando_a_adelantar);
@@ -282,7 +283,9 @@ void *proceso( void *arg)
                 sem_post(&semaforo_pagos_esperando_a_adelantar);
             }
         }
-        sem_post(&semaforo_permitiendo_adelantamiento_de_ronda);
+        else{
+            sem_post(&semaforo_permitiendo_adelantamiento_de_ronda);
+        }
         //idea para adelantamiento de ronda
         if(puedo_adelantar==0){
 
@@ -548,13 +551,13 @@ void *proceso( void *arg)
         sem_post(&semaforo_alguien_dentro);
         // SECCION CRITICA
         gettimeofday(&tiempo2,NULL);
-        printf("***\n");
+        printf("*****\n");
         printf("[%i,%i,%li] Dentro de la seccion critica en ronda [%d,%d]\n",mi_id,mi_puerto,mi_prioridad,mi_ticket_pedi,max_ticket_empece);
-        printf("***\n");
+        printf("*****\n");
         usleep(SC_TIME*1000000);
-        printf("***\n");
+        printf("*****\n");
         printf("[%i,%i,%li] Termine\n",mi_id,mi_puerto,mi_prioridad);
-        printf("***\n\n\n");
+        printf("*****\n\n\n");
         // SECCION CRITICA
         sem_wait(&semaforo_alguien_dentro);
         alguien_dentro--;
@@ -1067,6 +1070,6 @@ void main(int argc, char *argv[])
         sleep(1);
     }*/
     printf("Termine\n");
-    sleep(100);
+    sleep(300);
     return;
 }
