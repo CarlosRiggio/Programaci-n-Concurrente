@@ -15,6 +15,8 @@
 #define MAX_STR_LEN 100
 #define MAX_NUM_REGS 10
 
+int NUM_NODOS = 0;
+int NUM_PROCESOS = 0;
 
 struct mensaje
 {
@@ -38,11 +40,6 @@ struct info_hilo_proceso{
 };
 
 // VARIABLES UTILES
-
-int NUM_NODOS = 0;
-int NUM_PROCESOS = 0;
-
-
 int mi_ticket = 0;
 int mi_id = 0;
 int mi_buzon_interno = 0;
@@ -79,7 +76,7 @@ int oks_a_consultas_ya_mandados = 0;
 // VARIABLES UTILES
 
 //CAMBIO DE VARIABLES
-int id_nodos[100000000];
+int id_nodos[200];
 int diferencia;
 int puerto = 1;
 //CAMBIO DE VARIABLES
@@ -137,8 +134,8 @@ sem_t semaforo_consultas;
 // SEMAFOROS DE PRIORIDADES
 
 ///////
-char* registros[10000];
-int posicion_en_registro = 0;
+char* registros[10000000];
+long posicion_en_registro = 0;
 ///////
 
 char* generar_registro(char* pid, int tipo_proceso, struct timeval tiempo1, struct timeval tiempo2) {
@@ -212,7 +209,7 @@ void *proceso( void *arg)
     int puedo_adelantar = 0;
 
     float SC_TIME = info_pasada_param->time;
-    printf("+++++++SC_TIME: %f+++++++\n",SC_TIME);
+    //printf("+++++++SC_TIME: %d+++++++\n",SC_TIME);
 
     // INICIAR LONGITUD
     longitud_peticion = sizeof(peticion) - sizeof(peticion.tipo);
@@ -221,9 +218,9 @@ void *proceso( void *arg)
 
     // INICIAR LA INFORMACION DADA POR EL MAIN
     mi_prioridad = info_pasada_param->prio;
-    printf("+++++++PRIO: %lu+++++++\n",mi_prioridad);
+    //printf("+++++++PRIO: %lu+++++++\n",mi_prioridad);
     mi_puerto = puerto;
-    printf("1mi_nodo: %i,mi_puerto: %i\n",mi_id,mi_puerto);
+    //printf("1mi_nodo: %i,mi_puerto: %i\n",mi_id,mi_puerto);
     sem_post(&semaforo_coordinador_main_hilos);
 
     //printf("mi_prioridad: %li\n",mi_prioridad);
@@ -233,8 +230,7 @@ void *proceso( void *arg)
         gettimeofday(&tiempo1,NULL);
         //idea para adelantamiento de ronda
         sem_wait(&semaforo_permitiendo_adelantamiento_de_ronda);
-        if(permitiendo_adelantamiento_de_ronda==1){
-            sem_post(&semaforo_permitiendo_adelantamiento_de_ronda);
+        if(permitiendo_adelantamiento_de_ronda==1 && (mi_prioridad==1 || mi_prioridad==2)){
             if(mi_prioridad==1){
                 puedo_adelantar=1;
                 sem_wait(&semaforo_anulaciones_esperando_a_adelantar);
@@ -286,9 +282,7 @@ void *proceso( void *arg)
                 sem_post(&semaforo_pagos_esperando_a_adelantar);
             }
         }
-        else{
-            sem_post(&semaforo_permitiendo_adelantamiento_de_ronda);
-        }
+        sem_post(&semaforo_permitiendo_adelantamiento_de_ronda);
         //idea para adelantamiento de ronda
         if(puedo_adelantar==0){
 
@@ -382,7 +376,7 @@ void *proceso( void *arg)
             if (msgsnd(id_nodos[i], &peticion, longitud_peticion, 0) == -1) // 1 es no bloqueante
                 exit(-1);
             }
-            printf("2mi_nodo: %i,mi_puerto: %i\n",mi_id,mi_puerto);
+            //printf("2mi_nodo: %i,mi_puerto: %i\n",mi_id,mi_puerto);
             primero=0;
             if(mi_prioridad==4){
                 sem_wait(&semaforo_hizo_requests_consultas);
@@ -420,7 +414,7 @@ void *proceso( void *arg)
         }
         sem_post(&semaforo_primero_variable);
         }
-        printf("3mi_nodo: %i,mi_puerto: %i\n",mi_id,mi_puerto);
+        //printf("3mi_nodo: %i,mi_puerto: %i\n",mi_id,mi_puerto);
         puedo_adelantar=0;
         sem_wait(&semaforo_esperando);
         esperando++;
@@ -554,18 +548,21 @@ void *proceso( void *arg)
         sem_post(&semaforo_alguien_dentro);
         // SECCION CRITICA
         gettimeofday(&tiempo2,NULL);
-        printf("***********\n");
+        printf("***\n");
         printf("[%i,%i,%li] Dentro de la seccion critica en ronda [%d,%d]\n",mi_id,mi_puerto,mi_prioridad,mi_ticket_pedi,max_ticket_empece);
-        printf("***********\n");
-        sleep(SC_TIME);
-        printf("***********\n");
+        printf("***\n");
+        usleep(SC_TIME*1000000);
+        printf("***\n");
         printf("[%i,%i,%li] Termine\n",mi_id,mi_puerto,mi_prioridad);
-        printf("***********\n\n\n");
-        fflush(stdout);
+        printf("***\n\n\n");
         // SECCION CRITICA
         sem_wait(&semaforo_alguien_dentro);
         alguien_dentro--;
         sem_post(&semaforo_alguien_dentro);
+
+        sem_wait(&semaforo_ticket);
+        mi_ticket=99999;
+        sem_post(&semaforo_ticket);
 
         if(mi_prioridad!=4){//consultas
             sem_post(&semaforo_seccion_critica);
@@ -648,8 +645,9 @@ void *proceso( void *arg)
                         if (msgsnd(id_nodos_pendientes[i], &respuesta, longitud_respuesta, 1) == -1){ // 1 es no bloqueante
                         exit(-1);
                         }
+                        //printf("proceso %i en nodo %i mande ok a %i\n",mi_puerto,mi_id,id_nodos_pendientes[i]);
                     }
-                    printf("nodo: %i mando oks\n",mi_id);
+                    //printf("nodo: %i mando oks\n",mi_id);
                     peticiones_pendientes_de_consultas[i]=0;
                 }
                 sem_post(&semaforo_nodos_pendientes);
@@ -718,7 +716,7 @@ int id_nodo_origen = 0;
     longitud_respuesta = sizeof(respuesta) - sizeof(respuesta.tipo);
 
     float DELAY_TIME = *(float *)args;
-    printf("+++++++++++++++TIEMPO DE DELAY : %f+++++++++++++++\n", DELAY_TIME);
+    //printf("+++++++++++++++TIEMPO DE DELAY : %d+++++++++++++++\n", DELAY_TIME);
 
     //printf("diferencia en receptor: %d\n",diferencia);
 
@@ -731,7 +729,7 @@ int id_nodo_origen = 0;
             exit(-1);
         }
         srand(mi_id);
-        sleep(DELAY_TIME);
+        usleep(DELAY_TIME*1000000);
         tipo_origen = mensaje_recibido.tipo;
         ticket_origen = mensaje_recibido.ticket;
         id_nodo_origen = mensaje_recibido.id_nodo;
@@ -741,6 +739,14 @@ int id_nodo_origen = 0;
         // RECIBIR PETICION AJENA
         if (tipo_origen == 1)
         { // ESTO ES QUE RECIBIO UNA REQUEST
+
+            sem_wait(&semaforo_nodos_pendientes);
+            sem_wait(&semaforo_quiero);
+            sem_wait(&semaforo_ticket);
+            sem_wait(&semaforo_mi_id);//////////////////////////////////
+            sem_wait(&semaforo_num_pendientes);
+            //sem_wait(&semaforo_nodos_pendientes);
+
             sem_wait(&semaforo_max_ticket);
             if (max_ticket < ticket_origen)
             {
@@ -749,25 +755,18 @@ int id_nodo_origen = 0;
 
             sem_post(&semaforo_max_ticket);
 
-            sem_wait(&semaforo_nodos_pendientes);
-
-            sem_wait(&semaforo_quiero);
-            sem_wait(&semaforo_ticket);
-            sem_wait(&semaforo_mi_id);//////////////////////////////////
-            sem_wait(&semaforo_num_pendientes);
-            //sem_wait(&semaforo_nodos_pendientes);
-
-            printf("Quiero: %i\n",quiero);
+            /*printf("Quiero: %i\n",quiero);
             printf("Mi ticket: %i, ticket origen: %i\n",mi_ticket,ticket_origen);
-            printf("Mi id: %i, id origen: %i\n",mi_id,id_nodo_origen);
+            printf("Mi id: %i, id origen: %i\n",mi_id,id_nodo_origen);*/
             sem_wait(&semaforo_antes_de_entrar);
             if (quiero==0 || (ticket_origen < mi_ticket) || (ticket_origen == mi_ticket && (id_nodo_origen < mi_id)) || (prioridad_origen==4 && consultas_dentro!=0 && num_pend==0 && antes_de_entrar==0))//esto pa varias consultas en diferentes nodos
             {
+                //printf("nodo: %i mande oks\n",mi_id);
                 sem_post(&semaforo_num_pendientes);
                 sem_post(&semaforo_mi_id);
                 sem_post(&semaforo_ticket);
                 sem_post(&semaforo_quiero);
-
+                sem_post(&semaforo_nodos_pendientes);
 
                 sem_post(&semaforo_antes_de_entrar);
                 sem_wait(&semaforo_no_volver_a_permitir_adelantamientos);
@@ -802,10 +801,12 @@ int id_nodo_origen = 0;
             }
             else
             {   
+                //printf("nodo: %i no mande oks\n",mi_id);
                 sem_post(&semaforo_num_pendientes);
                 sem_post(&semaforo_mi_id);
                 sem_post(&semaforo_ticket);
                 sem_post(&semaforo_quiero);
+                sem_post(&semaforo_nodos_pendientes);
 
                 sem_post(&semaforo_antes_de_entrar);
                 sem_wait(&semaforo_primero);
@@ -846,7 +847,6 @@ int id_nodo_origen = 0;
                 num_pend++;
                 sem_post(&semaforo_num_pendientes);
             }
-            sem_post(&semaforo_nodos_pendientes);
         }
         else{
             cuenta++;
@@ -858,7 +858,7 @@ int id_nodo_origen = 0;
     }
 }
 
-int main(int argc, char *argv[])
+void main(int argc, char *argv[])
 {
     struct info_a_mandar_al_hilo info;
     struct info_hilo_proceso info_proceso;
@@ -908,8 +908,8 @@ int main(int argc, char *argv[])
     // INICIAR SEMAFOROS
 
     if (argc != 9) {
-        printf("Usage: %s [nodo_minimo] [nodo_maximo] [node_id] [instrucciones] [tiempos] [SC_TIME] [DELAY_TIME] [OUTPUT_FILENAME]\n", argv[0]);
-        return -1;
+        printf("Usage: %s [nodo_minimo] [nodo_maximo] [node_id] [instrucciones] [tiempos] [SC_TIME] [DELAY_TIME] [putput]\n", argv[0]);
+        return;
     }
 
     int nodo_minimo = atoi(argv[1]);
@@ -919,10 +919,10 @@ int main(int argc, char *argv[])
     char* tiempos = argv[5];
     float SC_TIME = atof(argv[6]);
     float DELAY_TIME = atof(argv[7]);
-    char* OUTPUT_FILENAME = argv[8];
+    char *output_filename = argv[8];
 
-    printf("EN EL MAIN SC TIME: %f\n",SC_TIME );
-    printf("EN EL MAIN DELAY TIME: %f\n",DELAY_TIME );
+    /*printf("EN EL MAIN SC TIME: %d\n",SC_TIME );
+    printf("EN EL MAIN DELAY TIME: %d\n",DELAY_TIME );*/
     info_proceso.time= SC_TIME;
 
     int longitud_instrucciones = 0;
@@ -970,7 +970,7 @@ int main(int argc, char *argv[])
         }
     }
     diferencia = (nodo_maximo - nodo_minimo); //buzon 0 es de nodo 0 buzon 1 es el buzon interno del nodo 0
-    NUM_NODOS=diferencia+1;
+    NUM_NODOS = diferencia+1;
     // INICIAR ID_NODOS
 
     // INICIAR THREADS
@@ -1033,15 +1033,12 @@ int main(int argc, char *argv[])
         }
 
     }
-
-    NUM_PROCESOS=contador;
-
+    NUM_PROCESOS = contador;
     for(a=0;a<(contador);a++){
         sem_wait(&semaforo_finalizador);
     }
-    sleep(0.1*mi_id);
-
-    FILE* log_file = fopen(OUTPUT_FILENAME,"a");
+    sleep(0.2*mi_id);
+    FILE* log_file = fopen(output_filename,"a");
     if (log_file == NULL) {
         printf("Error al abrir archivo de log\n");
         exit(1);
@@ -1069,8 +1066,7 @@ int main(int argc, char *argv[])
         pthread_create(&thread_receptor, NULL, proceso, (void *)&info);
         sleep(1);
     }*/
-    printf("NODO TERMINADO\n");
-    sleep(20);
-
-    return(0);
+    printf("Termine\n");
+    sleep(100);
+    return;
 }
