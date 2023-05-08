@@ -970,7 +970,7 @@ int main(int argc, char *argv[])
         }
     }
     diferencia = (nodo_maximo - nodo_minimo); //buzon 0 es de nodo 0 buzon 1 es el buzon interno del nodo 0
-    NUM_NODOS=diferencia;
+    NUM_NODOS=diferencia+1;
     // INICIAR ID_NODOS
 
     // INICIAR THREADS
